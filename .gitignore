@@ -2,3 +2,13 @@
 .venv/*
 __pycache__/*
 .env
+*.bak
+*.ini
+*.pyc
+*.csv
+*.7z
+*.jpg
+*.png
+*.ipynb
+*.txt
+*.pkl

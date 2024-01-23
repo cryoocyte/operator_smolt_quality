@@ -1,0 +1,1 @@
+SELECT locus_group_id,locus_id FROM public.job_to_locus_and_group WHERE licensee_id = 117 AND locus_group_id IS NOT NULL AND locus_id IS NOT NULL
