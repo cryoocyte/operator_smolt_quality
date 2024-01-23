@@ -9,6 +9,5 @@ __pycache__/*
 *.7z
 *.jpg
 *.png
-*.ipynb
 *.txt
 *.pkl
