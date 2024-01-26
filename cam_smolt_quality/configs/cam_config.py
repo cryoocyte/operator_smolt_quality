@@ -20,7 +20,8 @@ config = {
         "stockings_mrts": {
             "sql": {
                 "query": getattr(sql, cfg.RUN_ENV).mrts.stockings.query,
-                "keys": ["transfer_date", "to_site_name", "to_locus_id", "to_locus_name", "to_lp_id", "from_lp_id", "fish_group"],
+                # "keys": ["transfer_date", "to_site_name",  "from_fish_group", 'from_locus_id', 'from_lp_id', 'to_lp_id'],
+                "keys": ["transfer_date", "to_site_name",  "to_fish_group", ],
                 "values": ["stock_cnt"],
                 "args": {
                     "LICENSEE_ID": LICENSEE_ID,
@@ -30,11 +31,11 @@ config = {
                 },
             }
         },
-        "mortality_transfer_mrts": {
+        "mortality_mrts": {
             "sql": {
-                "query": getattr(sql, cfg.RUN_ENV).mrts.mortality_transfer.query,
-                "keys": ["fish_group", "locus_id", "locus_name", "site_name", "lp_id", "event_date",],
-                "values": ["mortality_count"],
+                "query": getattr(sql, cfg.RUN_ENV).mrts.mortality.query,
+                "keys": ["fish_group", "site_name", "event_date",],
+                "values": ["mortality_cnt"],
                 "args": {
                     "LICENSEE_ID": LICENSEE_ID,
                     'START_DATE': START_DATE,
@@ -59,13 +60,13 @@ config = {
         "inventory_mrts": {
             "sql": {
                 "query": getattr(sql, cfg.RUN_ENV).mrts.inventory.query,
-                "keys": ["locus_id", "locus_name", "site_name", "lp_id", "fish_group", "year_class", "fg_order", "event_date"],
+                "keys": ["site_name", "fish_group", "site_type", "event_date"],
                 "values": ["start_fish_cnt", "end_fish_cnt", "start_fish_bms", "end_fish_bms", "fish_wg"],
                 "args": {
                     "LICENSEE_ID": LICENSEE_ID,
                     'START_DATE': START_DATE,
                     "MAX_DATE": MAX_DATE,
-                    "SITE_TYPE": ('Freshwater', 'Freshwater Reproduction'),
+                    "SITE_TYPE": ('Freshwater', 'Freshwater Reproduction', 'Seawater'),
                     #"SITES_TO_INCLUDE": ('65.100224.RD Este R', 'Transport', 'Rio Petrohue', 'UPS') 
                 },
             }
@@ -153,21 +154,6 @@ config = {
                     "LICENSEE_ID": LICENSEE_ID,
                     #'START_DATE': START_DATE,
                     "MAX_DATE": MAX_DATE,
-                },
-            }
-        },
-        "mortality_mrts": {
-            "sql": {
-                "query": getattr(sql, cfg.RUN_ENV).mrts.mortality.query,
-                "keys": ["fish_group", "locus_id", "locus_name", "site_name", "lp_id", "event_date", "mortality_reason"],
-                "values": ["mortality_count"],
-                "args": {
-                    "LICENSEE_ID": LICENSEE_ID,
-                    'START_DATE': START_DATE,
-                    "MAX_DATE": MAX_DATE,
-                    "SITE_TYPE": ('Freshwater', 'Freshwater Reproduction'),
-                    #"SITES_TO_INCLUDE": ('Rio Petrohue', 'UPS', ), #'65.100224.RD Este R', 'Polcura Rep', 'Transport', 
-                    #"MORTALITY_REASONS": ('Opérculo Corto', 'Eliminación Opérculo', 'Eliminación Productiva')
                 },
             }
         },

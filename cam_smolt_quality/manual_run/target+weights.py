@@ -7,8 +7,8 @@ from cam_smolt_quality.configs import READ_PARAMS
 import cam_smolt_quality.manual_run.utils as utils
 
 ### 1. base/20221222 Smolt performance Phase 3_copy.ipynb
-df1 = utils.read_file('mortality_target_to_be_grouped', READ_PARAMS, buffer=True) # data on first 90 days after transfer #e)
 df2 = utils.read_file('eb_stocking_edited2', READ_PARAMS, buffer=True)
+df1 = utils.read_file('mortality_target_to_be_grouped', READ_PARAMS, buffer=True) # data on first 90 days after transfer #e)
 freshwater_names=utils.read_file('from_locus_name_lookup', READ_PARAMS, buffer=True)
 
 df1.drop(columns=['event_date.1', 'locus_id.1', 'fish_group_id.1'],inplace=True)
@@ -60,7 +60,7 @@ df3.drop(columns=['to_avg_weight_binned']).to_csv('cam_smolt_quality/data/smolt_
 
 ## 2.base/20230712 Target comparison_only_mortality_nSFR:
 mortality=pd.read_csv('cam_smolt_quality/data/smolt_dataset_transfers.csv') #new/ _until2023May18_short
-inv=utils.read_file('evt_inventory_only_SW_cages_only_since_2017', READ_PARAMS, buffer=False)
+inv=utils.read_file('evt_inventory_only_SW_cages_only_since_2017', READ_PARAMS, buffer=True)
 
 key_columns = ['locus_id','fish_group_id','transfer_year',] 
 df=mortality[key_columns+['to_avg_weight','total_mortality_perc_90','transport_mortality_perc_90','nontransport_mortality_perc_90']]
@@ -93,7 +93,7 @@ df.to_csv('cam_smolt_quality/data/targets.csv',index=False)
 
 
 ## 3. base (dmitrii)/FW data processing (Dmitriis optimization).ipynb
-RECALCULATE_WEIGHTS = False
+RECALCULATE_WEIGHTS = True
 
 
 locus_weights = utils.read_file('evt_movement_ratio_with_dates', READ_PARAMS, buffer=True)
@@ -155,12 +155,13 @@ if RECALCULATE_WEIGHTS:
 
         lw_alldates_final.append(res_df)
     lw_alldates_final = pd.concat(lw_alldates_final, axis=0)
+    print('-- Saving lw_alldates_final')
     lw_alldates_final.to_csv('cam_smolt_quality/data/lw_alldates_final.csv', index=False)
 
 
 
 ## 4. temperature/20230607 FW data processing.ipynb
-lw_alldates_final=utils.read_file('lw_alldates_final',buffer=True)
+lw_alldates_final=utils.read_file('lw_alldates_final', buffer=True)
 
 llg_match = dict(zip(llg_match['locus_id'], llg_match['locus_group_id']))
 lw_alldates_final['locus_group_id'] = lw_alldates_final['historic_locus_id'].replace(llg_match)
@@ -241,11 +242,11 @@ df_temperature_cleared['event_date'] = pd.to_datetime(df_temperature_cleared['ev
 df_temperature_cleared.to_csv('cam_smolt_quality/data/FW_temperature_cleared.csv')
 
 ## 6. enviromental/Env_analisys.ipynb
-df_env_indicators = utils.read_file('jobs environmental', READ_PARAMS, buffer=False, encoding='Windows-1251')
-df_lb_indicators = utils.read_file('logbook environmental', READ_PARAMS, buffer=False)
-df_vocab = utils.read_file('dict_env', READ_PARAMS, buffer=False)
-df_carb_dioxide_jobs = utils.read_file('jobs carbon dioxide', READ_PARAMS, buffer=False)
-df_carb_dioxide_logbook = utils.read_file('logbook environmental carbon dioxide', READ_PARAMS, buffer=False)
+df_env_indicators = utils.read_file('jobs environmental', READ_PARAMS, buffer=True, encoding='windows-1251') #Always from sql!!!!
+df_lb_indicators = utils.read_file('logbook environmental', READ_PARAMS, buffer=True)
+df_vocab = utils.read_file('dict_env', READ_PARAMS, buffer=True) #Always from drive !!!!
+df_carb_dioxide_jobs = utils.read_file('jobs carbon dioxide', READ_PARAMS, buffer=True)
+df_carb_dioxide_logbook = utils.read_file('logbook environmental carbon dioxide', READ_PARAMS, buffer=True)
 df_transfer_1 = pd.DataFrame(columns = ['event_ts', 'locus_group_id', 'sensor_type_value', 'sensor_name', 'type_name'])
 df_transfer_2 = pd.DataFrame(columns = ['event_ts', 'locus_group_id', 'sensor_type_value', 'sensor_name', 'type_name'])
 
@@ -266,7 +267,6 @@ while n < len(df_lb_indicators):
     trans_list.append(type_name)
     df_transfer_1.loc[len(df_transfer_1)] = trans_list
     n = n + 1
-    print('n', n)
 
 df_env_indicators = pd.concat([df_env_indicators, df_transfer_1])
 df_env_indicators.reset_index(drop = True, inplace = True)
@@ -295,7 +295,6 @@ while m < len(df_carb_dioxide_logbook):
     trans_list_1.append(type_name)
     df_transfer_2.loc[len(df_transfer_2)] = trans_list_1
     m = m + 1
-    print('m', m)
 df_carb_dioxide_jobs = pd.concat([df_carb_dioxide_jobs, df_transfer_2])
 df_carb_dioxide_jobs.reset_index(drop = True, inplace = True)
 df_env_indicators = pd.concat([df_env_indicators, df_carb_dioxide_jobs])
@@ -304,9 +303,6 @@ df_env_indicators.to_csv(r'cam_smolt_quality/data/indicators_all_file_joined.csv
 
 
 
-
-
-   
 
 
 
