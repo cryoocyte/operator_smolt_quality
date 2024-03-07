@@ -7,8 +7,8 @@ from cam_smolt_quality.configs import READ_PARAMS
 import cam_smolt_quality.manual_run.utils as utils
 
 ### 1. base/20221222 Smolt performance Phase 3_copy.ipynb
-df2 = utils.read_file('eb_stocking_edited2', READ_PARAMS, buffer=True)
-df1 = utils.read_file('mortality_target_to_be_grouped', READ_PARAMS, buffer=True) # data on first 90 days after transfer #e)
+df2 = utils.read_file('eb_stocking_edited2', buffer=True)
+df1 = utils.read_file('mortality_target_to_be_grouped', buffer=True) # data on first 90 days after transfer #e)
 freshwater_names=utils.read_file('from_locus_name_lookup', READ_PARAMS, buffer=True)
 
 df1.drop(columns=['event_date.1', 'locus_id.1', 'fish_group_id.1'],inplace=True)
@@ -60,7 +60,7 @@ df3.drop(columns=['to_avg_weight_binned']).to_csv('cam_smolt_quality/data/smolt_
 
 ## 2.base/20230712 Target comparison_only_mortality_nSFR:
 mortality=pd.read_csv('cam_smolt_quality/data/smolt_dataset_transfers.csv') #new/ _until2023May18_short
-inv=utils.read_file('evt_inventory_only_SW_cages_only_since_2017', READ_PARAMS, buffer=True)
+inv=utils.read_file('evt_inventory_only_SW_cages_only_since_2017',  buffer=True)
 
 key_columns = ['locus_id','fish_group_id','transfer_year',] 
 df=mortality[key_columns+['to_avg_weight','total_mortality_perc_90','transport_mortality_perc_90','nontransport_mortality_perc_90']]

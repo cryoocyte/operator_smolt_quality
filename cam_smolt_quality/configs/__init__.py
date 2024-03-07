@@ -5,10 +5,10 @@ from datetime import datetime
 MODULE_DIR = Path(__file__).parent
 ROOT_DIR = MODULE_DIR.parent
 
-CURRENT_DATE = '2024-02-05' #datetime.utcnow().replace(microsecond=0, second=0, minute=0).strftime('%Y-%m-%d') #'2023-05-29' #
+CURRENT_DATE = '2024-03-01' #datetime.utcnow().replace(microsecond=0, second=0, minute=0).strftime('%Y-%m-%d') #'2023-05-29' #
 RUN_ENV = "dev"
 PIPELINE_TYPE = "train"
-CSV_BUFFER = False
+CSV_BUFFER = True
 SAVE_TO_CSVS = True if RUN_ENV == "dev" else False
 
 # Mounting

@@ -31,7 +31,7 @@ def read_file(filename, conn_params=None, buffer=False, save=True):
         df[col] = pd.to_datetime(df[col], utc=True)
     return df
 
-def eSFR (row):
+def eSFR(row):
     w = row['open_weight']
     t = row['degree_days']
     yf = (.2735797591)+(-.0720137809*t)+(.0187408253*t**2)+(-.0008145337*t**3)
