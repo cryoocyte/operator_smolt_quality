@@ -210,6 +210,7 @@ def target_full_analysis(stock_df, use_all=True, draw=True):
 
     if use_all:
         valid_stocks_df = stock_df[(~is_finished | (stock_df['days_length'] > N_TRANSFER_DAYS))].reset_index(drop=True)
+        bg = '012'
     else:
         bg = stock_df.groupby('cycle_cluster')['days_length'].min().idxmax()
         valid_stocks_df = stock_df[((stock_df['cycle_cluster']==bg) | ~is_finished)].reset_index(drop=True)
@@ -217,9 +218,10 @@ def target_full_analysis(stock_df, use_all=True, draw=True):
     valid_stocks_df['transfer_year'] = valid_stocks_df['min_date'].dt.year.astype(str)
                
     if draw:
-        fig, ax = plt.subplots(2, 5, figsize=(16,8))
+        fig, ax = plt.subplots(2, 4, figsize=(16,8))
+        # shue = valid_stocks_df['cycle_cluster'].unique().tolist()
         sorted_years = sorted(valid_stocks_df['transfer_year'].unique())
-        years_palette = dict(zip(sorted_years, sns.color_palette("tab20", len(sorted_years))))
+        # hue_palette = dict(zip(shue, sns.color_palette("tab20", len(shue))))
         colors = dict(zip(['0', '1', '2'], ['tab:orange', 'tab:blue', 'tab:green']))
         for g_id, g_df in stock_df.loc[is_finished].groupby('cycle_cluster'):
             g_df['days_length'].plot.hist(bins=15, label=f'Cluster: {g_id}', color=colors[g_id], ax=ax[0][0])
@@ -227,8 +229,8 @@ def target_full_analysis(stock_df, use_all=True, draw=True):
         ax[0][0].set_xlabel('Cycle length')
         ax[0][0].set_title(f'CAM: Distribution of all SW cycle lengths\nsince {stock_df["min_date"].min().year}')
         
-        r_df = valid_stocks_df[valid_no_transfer].groupby('transfer_year').size().rename('cnt').reset_index()
-        sns.barplot(data=r_df, x='cnt', y='transfer_year', order=sorted_years,palette=years_palette, ax=ax[1][0])
+        r_df = valid_stocks_df[valid_no_transfer].groupby(['transfer_year', 'cycle_cluster']).size().rename('cnt').reset_index()
+        sns.barplot(data=r_df, x='cnt', y='transfer_year', hue='cycle_cluster', order=sorted_years, palette=colors, ax=ax[1][0])
         ax[1][0].set_xlabel('count')
         ax[1][0].set_title(f'Cycles count. CLuster: {bg} \n(Using year class)')
         
@@ -241,7 +243,7 @@ def target_full_analysis(stock_df, use_all=True, draw=True):
         sns.stripplot(
             data=valid_stocks_df[valid_no_transfer],
             y='transfer_year', x='mrtperc_90d:all'
-            , hue='transfer_year', palette=years_palette,
+            , hue='cycle_cluster', palette=colors,
             order=sorted_years, ax=ax[1][1],  legend=None
         )
         ax[1][1].set_title('Mortality percentage: All.\n(Using year class)')
@@ -258,46 +260,29 @@ def target_full_analysis(stock_df, use_all=True, draw=True):
         sns.stripplot(
             data=valid_stocks_df[valid_no_transfer],
             y='transfer_year', x='mrtperc_90d:env'
-            , hue='transfer_year', palette=years_palette,
+            , hue='cycle_cluster', palette=colors,
             order=sorted_years, ax=ax[1][2],  legend=None
         )
         ax[1][2].set_title('Mortality percentage: Env only.\n (Using year class)')
         ax[1][2].set_xlabel('%')
         ax[1][2].set_xlim(0, 10)
         
-        #nSFR positive rate
-        valid_stocks_df.loc[valid_no_transfer, 'nSFR_positive_rate_90d'].plot.hist(
-            bins=50, ax=ax[0][3], color='tab:purple' if use_all else colors[bg], label=None if use_all else f'Cluster: {bg}')
+        #nSFR
+        valid_stocks_df.loc[valid_no_transfer, 'nSFR_90d'].plot.hist(
+            bins=40, ax=ax[0][3], color='tab:purple' if use_all else colors[bg], label=None if use_all else f'Cluster: {bg}')
         ax[0][3].set_xlabel('%')
-        ax[0][3].set_xlim(0.0, 100)
-        ax[0][3].set_title('nSFR rate')
+        ax[0][3].set_xlim(0.2, 1.8)
+        ax[0][3].set_title('nSFR')
         ax[0][3].legend()
         sns.stripplot(
             data=valid_stocks_df[valid_no_transfer],
-            y='transfer_year', x='nSFR_positive_rate_90d'
-            , hue='transfer_year', palette=years_palette,
+            y='transfer_year', x='nSFR_90d'
+            , hue='cycle_cluster', palette=colors,
             order=sorted_years, ax=ax[1][3],  legend=None
         )
-        ax[1][3].set_title('nSFR Positive rate.\n(Using year class)')
+        ax[1][3].set_title('nSFR (locus level).\n(Using year class)')
         ax[1][3].set_xlabel('%')
-        ax[1][3].set_xlim(0.0, 100)
-        
-        #nSFR
-        valid_stocks_df.loc[valid_no_transfer, 'nSFR_90d'].plot.hist(
-            bins=40, ax=ax[0][4], color='tab:purple' if use_all else colors[bg], label=None if use_all else f'Cluster: {bg}')
-        ax[0][4].set_xlabel('%')
-        ax[0][4].set_xlim(0.2, 1.8)
-        ax[0][4].set_title('nSFR')
-        ax[0][4].legend()
-        sns.stripplot(
-            data=valid_stocks_df[valid_no_transfer],
-            y='transfer_year', x='nSFR_90d'
-            , hue='transfer_year', palette=years_palette,
-            order=sorted_years, ax=ax[1][4],  legend=None
-        )
-        ax[1][4].set_title('nSFR (locus level).\n(Using year class)')
-        ax[1][4].set_xlabel('%')
-        ax[1][4].set_xlim(0.2, 1.8)
+        ax[1][3].set_xlim(0.2, 1.8)
         
         fig.suptitle('CAM/SW/Site level/ First 90days summary. Finished transfers')
         plt.tight_layout()
@@ -326,12 +311,12 @@ def prep_vaccines(vaccines_df):
 
 #Sensors
 def join_logbook_jobs(logbook_df, jobs_df):
-    sensors_df = pd.concat([logbook_df, jobs_df], axis=0)
-    sensors_df = sensors_df.drop_duplicates(keep='last') #Keep jobs data
-    sensors_df = sensors_df[sensors_df['variable'].notna()]
-    sensors_df = sensors_df.pivot_table(values='value', columns=['variable'], index=['event_date', 'locus_group_id'], aggfunc='mean')
-    sensors_df = utils.add_prefix(sensors_df, keys='', prefix_name='sensor').reset_index()
-    return sensors_df
+    df = pd.concat([logbook_df, jobs_df], axis=0)
+    df = df.drop_duplicates(keep='last') #Keep jobs data
+    df = df[df['variable'].notna()]
+    df = df.pivot_table(values='value', columns=['variable'], index=['event_date', 'locus_group_id'], aggfunc='mean')
+    df = utils.add_prefix(df, keys='', prefix_name='jobs').reset_index()
+    return df
 
 
 def get_feed(feed_df):
@@ -340,7 +325,7 @@ def get_feed(feed_df):
 
 
 def get_jobs(jobs_df, fw_inv_df, locus_locus_group_df, sqs=[0.05, 0.25, 0.5, 0.75, 0.95]):
-    jobs_cols = [c for c in jobs_df.columns if 'sensor' in c] #['sensor:Temperature',] #TODO!
+    jobs_cols = [c for c in jobs_df.columns if 'jobs' in c] #['sensor:Temperature',] #TODO!
     sn_df = fw_inv_df.copy()
     sn_df = sn_df.merge(locus_locus_group_df[['locus_id', 'locus_group_id']], on='locus_id')
     sn_df = sn_df.merge(jobs_df, on=['event_date', 'locus_group_id'], how='left')
@@ -369,7 +354,7 @@ def construct_dataset(
         stock_df, fg_paths_df,fg_df, fw_inv_df,
         sw_inv_df, vaccines_df, fw_feed_df,
         fw_mortality_df, treatments_df, atpasa_df,
-        jobs_df, jobs_q_df, luf_fish_df, sensors_df
+        jobs_df, jobs_q_df, luf_fish_df, sensors_df, fw_light_df
     ):
     s_dfs = []
     sns_df = []
@@ -377,10 +362,8 @@ def construct_dataset(
         # if dst_fish_group == '31G1902.SNFLY1904.M.OTO':
         # pass
         '''
-        sensors extraction, well done
-        fish_luf data
-        
-        
+        sensors extraction, well done        
+        features add rest
         
         '''
         
@@ -390,7 +373,7 @@ def construct_dataset(
         fw_df = fw_inv_df.loc[fw_inv_df['fish_group'].isin(uniq_fgs)].reset_index(drop=True)
         fw_df = fw_df.sort_values('event_date')
         sw_df = sw_inv_df.loc[sw_inv_df['fish_group'].isin(uniq_fgs)].reset_index(drop=True)
-        s_df = stock_df[stock_df['fish_group']==dst_fish_group].reset_index(drop=True)
+        s_df = stock_df[stock_df['fish_group']==dst_fish_group].reset_index(drop=True).loc[0].to_dict()
         v_df = vaccines_df.loc[vaccines_df['fish_group'].isin(uniq_fgs)].reset_index(drop=True)
         fe_df = fw_feed_df.loc[fw_feed_df['fish_group'].isin(uniq_fgs)].reset_index(drop=True)
         mrt_df = fw_mortality_df.loc[fw_mortality_df['fish_group'].isin(uniq_fgs)].reset_index(drop=True)
@@ -400,53 +383,15 @@ def construct_dataset(
         jb_df = jobs_df.loc[jobs_df['fish_group'].isin(uniq_fgs)].reset_index(drop=True)
         sn_df = sensors_df[((sensors_df['event_date']>=fw_df['event_date'].min()) & (sensors_df['event_date']<=fw_df['event_date'].max()))]
         lf_df = luf_fish_df.loc[luf_fish_df['locus_id'].isin(fw_df['locus_id'].unique()) & ((luf_fish_df['event_date']>=fw_df['event_date'].min()) & (luf_fish_df['event_date']<=fw_df['event_date'].max()))].reset_index(drop=True)
-
-        if 'pH Sensor - UPS 1' in sn_df['sensor_name'].unique().tolist():
-            break
+        li_df = fw_light_df[((fw_light_df['event_date']>=fw_df['event_date'].min()) & (fw_light_df['event_date']<=fw_df['event_date'].max()))]
         
-        keys = ['event_date', 'site_name', 'fish_group', 'fw_locus_prefix']
-        i_df = fw_df.groupby(keys)['fish_wg'].mean().reset_index()
+        keys = ['event_date', 'site_name', 'fish_group', 'fw_locus_prefix', 'locus_id']
+        i_df = fw_df.groupby(keys)['start_fish_bms'].sum().reset_index()
         sn_df = i_df.merge(sn_df).pivot_table(index=keys, columns=['sensor_type_name'], values='value',aggfunc='mean').reset_index()
-        
-        
-        
-        #Weighted stages length
-        weights_df = pd.pivot_table(data=fw_df, index='fish_group', columns='fw_locus_prefix', values='end_fish_bms', aggfunc='max')
-        weights_df = weights_df.divide(weights_df.sum(0), axis=1)
-        
-        # Smolt size and weight
-        s_df = s_df.rename({'smolt_wg': 'cycle:transfer_weight'}, axis=1)
-        
-        # Smolt condition factor (K) \ Atpasa
-        #Atpasa
-        if len(at_df) > 0:
-            res = []
-            for g_id, g_df in at_df.groupby('fish_group'):
-               g_df = g_df[g_df['event_date']==g_df['event_date'].max()]
-               weights = g_df['n_samples']/g_df['n_samples'].sum()
-               res.append({
-                   'fish_group': g_id,
-                   'event_date': g_df['event_date'].max(),
-                   'atpasa': (g_df['atpasa'] * weights).sum(),
-                   'kfactor': (g_df['k_factor'] * weights).sum()
-               })
-            res = pd.DataFrame(res).set_index('fish_group')
-            s_df['atpasa:latest_date'] = (weights_df.loc[res.index, 'UPS'] * res['atpasa']).sum()
-            s_df['atpasa:latest_kfactor'] = (weights_df.loc[res.index, 'UPS'] * res['kfactor']).sum()
-            # at_df['event_week'] = at_df['event_date'].dt.strftime('%Y-%m-%w')
-            # l_at = at_df.groupby('event_date').apply(lambda x: (x['n_samples'] * x['atpasa']).sum() / x['n_samples'].sum()).sort_index()
-            # l_at = l_at.diff()
-            # l_at[l_at < 0] = 0
-            # s_df['atpasa:derivative'] = l_at.diff().mean().item()
-     
-        # Stocking density
-        s_df = s_df.rename({'stocking_density': 'cycle:stocking_density'}, axis=1)
+        sn_df = sn_df[sn_df['fw_locus_prefix'] != ''].drop_duplicates().reset_index(drop=True)
+        li_df = i_df.merge(li_df, how='left')
 
-        # Lufenuron container (lab)
-    
-             
-             
-                    
+        
         if sw_df['event_date'].min() <= pd.to_datetime(START_DATE, utc=True) or len(fw_df) == 0:
             # s_dfs.append(s_df)
             continue
@@ -457,92 +402,191 @@ def construct_dataset(
             continue
         fw_df = fw_df[fw_df['fw_locus_prefix'].isin(fw_stages_sorted)].reset_index(drop=True)
         
-        #First dates
-        # first_feeding_date = fe_df['event_date'].min() #Simple, TODO!!!
-        first_vaccine_date = get_weighted_date(v_df, 'vaccine:fish_cnt') #Weighted
+        #Weighted stages length
+        weights_df = pd.pivot_table(data=fw_df, index='fish_group', columns='fw_locus_prefix', values='end_fish_bms', aggfunc='max')
+        weights_df = weights_df.divide(weights_df.sum(0), axis=1)
         
-        # sns.scatterplot(data=fw_df[fw_df['fw_locus_prefix'] == 'I'], x='event_date', y='fish_wg', hue='fish_group')
-        # sns.scatterplot(data=fw_df, x='event_date', y='fish_wg', hue='fish_group')
-        # sns.scatterplot(data=fw_df, x='event_date', y='fish_wg', hue='fw_locus_prefix')
+        #Smolt size and weight
+        s_df['cycle:transfer_weight'] = s_df['smolt_wg'] 
+        del(s_df['smolt_wg'])
         
-        #Cycle features
-        s_df['calendar:transfer_dayofyear'] = s_df['min_transfer_date'].dt.dayofyear.item()
-        
-        ## FW stages length
-        #Fix incubation issues
-        # fw_df = fw_df.loc[fw_df.drop(['event_date'], axis=1).drop_duplicates().index]
-        # i_mask = fw_df['fw_locus_prefix']=='I'
-        # if fw_df.loc[i_mask, 'fish_group'].nunique() == 1:
-        #     h_min = fw_df.loc[fw_df['fw_locus_prefix']=='H', 'event_date'].min()
-        #     fw_df.loc[(i_mask & (fw_df['event_date'] > h_min)), 'fw_locus_prefix'] = np.nan
+        # Smolt condition factor (K) \ Atpasa
+        #Atpasa
+        if len(at_df) > 0:
+            res = []
+            
+            for g_id, gg_df in at_df.groupby('fish_group'):
+               g_df = gg_df[gg_df['event_date']==gg_df['event_date'].max()]
+               weights = g_df['n_samples']/g_df['n_samples'].sum()
+               res.append({
+                   'fish_group': g_id,
+                   'event_date': g_df['event_date'].max(),
+                   'atpasa': (g_df['atpasa'] * weights).sum(),
+                   'kfactor': (g_df['k_factor'] * weights).sum()
+               })
+            res = pd.DataFrame(res).set_index('fish_group')
+            s_df['atpasa:latest_value'] = (weights_df.loc[res.index, 'UPS'] * res['atpasa']).sum()
+            s_df['atpasa:latest_kfactor'] = (weights_df.loc[res.index, 'UPS'] * res['kfactor']).sum()
+            diffs = at_df.groupby(['fish_group', 'event_date']).apply(lambda x: np.average(x['atpasa'], weights=x['n_samples'])).groupby('fish_group').apply(lambda x: x.diff(1).apply(lambda x: max(0, x)).mean())
+            s_df['atpasa:diff'] = (weights_df.loc[diffs.index, 'UPS'] * diffs).sum() 
+            
 
-        cnts_df = pd.pivot_table(data=fw_df, index='fish_group', columns='fw_locus_prefix', values='event_date', aggfunc='nunique')
-        cnts_df[cnts_df == 0] = np.nan
-        fw_stages_lengths = (cnts_df * weights_df).sum(0).astype(int)
-            
-        for k in fw_stages_lengths.index:
-            if fw_stages_lengths[k] == 0: res = np.nan
-            else: res = fw_stages_lengths[k]
-            s_df[f'cycle:len:{k}'] = res
-    
-    
-        #Weighted stages day
-        dates_df = pd.pivot_table(data=fw_df[(fw_df['fw_locus_prefix']!='I') & (fw_df['fw_locus_prefix'].isin(fw_stages_sorted))], index='fish_group', columns='fw_locus_prefix', values='event_date', aggfunc='min')
+        # Stocking density
+        s_df['cycle:stocking_density'] = s_df['stocking_density'] 
+        del(s_df['stocking_density'])
         
-        for s in dates_df.columns: dates_df[s] = dates_df[s].dt.dayofyear
-        dates = (dates_df * weights_df.loc[dates_df.index, dates_df.columns]).sum(0).astype(int)
-        dates.index = [f'calendar:dayofyear:{i}' for i in dates.index]    
-        dates = dates.to_frame().T
-        dates.index = s_df.index
-        s_df = pd.concat([s_df, dates], axis=1)
+        #Lufenuron container (lab)
+        # if len(lf_df) > 0:
+            # lf_df = lf_df.groupby('event_date').apply(lambda x: np.average(x['value_ppb'], weights=x['n_samples'])).reset_index()
+            # s_df['lab:luf_ppb:max'] = lf_df[0].max()
+            # s_df['lab:luf_ppb:mean'] = lf_df[0].mean()
         
-        #Light regime
-        # fw_df = pd.merge(fw_df, fw_light_df, how='left', on=['event_date', 'site_name', 'locus_id', 'fw_locus_prefix'])
-        # fw_df['light_regime'] = fw_df.groupby('locus_id')['light_regime'].ffill()
-        # l_df = fw_df.loc[((fw_df['light_regime'] != 'Apagado') & (fw_df['light_regime'].notna()))].reset_index(drop=True)
-        # # l_df = fw_df.loc[fw_df['light_regime'] == 'Verano'].reset_index(drop=True)
-        # l_df['season'] = l_df['event_date'].dt.month.apply(utils.season_from_month)
-        # l_df = l_df[l_df['season'] == 'Q3'].reset_index(drop=True) #Summer
-        # l_df['event_week'] = l_df['event_date'].dt.strftime('%Y-%m-%w')
-        # n_of_weeks = l_df['event_week'].nunique()
-        # s_df['light:summer_weeks'] = n_of_weeks
-        
-        #Sensor
-        # sns.scatterplot(data=sn_df, x='event_date', y='sensor:Temperature', hue='fish_group')
-        sensor_cols = ['sensor:Temperature',] #[c for c in sensors_df.columns if 'sensor' in c] # #TODO!
-    
-        for sensor_col in sensor_cols:
-            for aggfunc in ['mean', 'min', 'max', 'std']:
-                sg_df = pd.pivot_table(data=sn_df, index='fish_group', columns='fw_locus_prefix', values=sensor_col, aggfunc=aggfunc)
-                res = (sg_df * weights_df).sum(0)
-                res[res==0] = np.nan
-                res.index = [f'{sensor_col}:{aggfunc}:{i}' for i in res.index]    
-                for k, v in res.items():
-                    s_df[k] = v
-            sq_df = sensors_q_df[sensors_q_df['feature_name']==sensor_col]
-            for q, vals in sq_df.iterrows():
-                for prefix, g_df in sn_df.groupby('fw_locus_prefix'):
-                    perc = (g_df[sensor_col] <= vals[prefix]).mean() * 100
-                    s_df[f'{sensor_col}:perc_q<={q}:{prefix}'] = perc
-           
-                    
-        #Temperature last N weeks
-        tmp_df = sn_df[['event_date', 'sensor:Temperature']]
-        for N in [1,2,3,4]:
-            last_date = s_df['min_transfer_date'].item()-pd.Timedelta(weeks=N)
-            t_df = tmp_df.loc[tmp_df['event_date'] >= last_date, 'sensor:Temperature']
-            s_df[f'sensor:Temperature:mean:last_{N}w'] = t_df.mean()
-            
-    
-        #Vaccines    
-        #Define vaccine date/since days based on weighted fish cnt strategy
-        days_since_vaccine = (s_df['min_transfer_date'].item() - first_vaccine_date).days
+        #Vaccination history
+        first_vaccine_date = get_weighted_date(v_df, 'vaccine:fish_cnt') #Weighted
+        days_since_vaccine = (s_df['min_transfer_date'] - first_vaccine_date).days
         s_df['vaccine:days_since_started'] = days_since_vaccine
         s_df['vaccine:days_of'] = v_df['event_date'].nunique()
         #Vaccine weight
         cnts_df = pd.merge(v_df.groupby('event_date')['vaccine:fish_cnt'].sum().reset_index(), fw_df.groupby('event_date')['fish_wg'].mean().reset_index())
         fish_wg = sum(cnts_df['fish_wg'] * cnts_df['vaccine:fish_cnt']/cnts_df['vaccine:fish_cnt'].sum())
         s_df['vaccine:mean_fish_wg'] = fish_wg
+        
+        #Feed LUF
+        luf_perc = fe_df.loc[fe_df['has_luf']==True, 'feed_amount'].sum()/fe_df['feed_amount'].sum() * 100
+        s_df['feed:luf_perc'] = luf_perc
+        days_since_luf = (s_df['min_transfer_date'] - fe_df.loc[fe_df['has_luf']==True, 'event_date'].min()).days
+        s_df['feed:days_since_first_luf'] = days_since_luf
+                
+        #Treatments
+        days = trt_df.groupby('active_substance_name')['event_date'].nunique()
+        amount = trt_df.groupby('active_substance_name')['amount'].sum()
+        amount_per_day = amount.divide(days)
+        for k, v in amount_per_day.items():
+            s_df[f'treatment:amount_per_day:{k}'] = v
+        s_df = s_df.copy()
+        for g_id, g_df in trt_df.groupby('active_substance_name'):
+            g_df = g_df.sort_values('event_date')
+            days_in_treatment = g_df['event_date'].nunique()
+            max_consectuive = g_df['event_date'].diff().dt.days.max()
+            last_treatment = (fw_df['event_date'].max() - g_df['event_date'].max()).days
+            s_df[f'treatment:days_in:{g_id}'] = days_in_treatment
+            s_df[f'treatment:consecutive_without:{g_id}'] = max_consectuive
+            s_df[f'treatment:days_since_last:{g_id}'] = last_treatment
+        
+        #Light regime  
+        if len(li_df['light_regime'].unique()) > 1 and (li_df['light_regime']=='Verano').sum() > 10:
+            # lf_df = lf_df[].reset_index(drop=True)
+            li_df = li_df.drop_duplicates(['event_date', 'fish_group', 'fw_locus_prefix', 'light_regime'])
+            li_df = li_df[li_df['light_regime'].notna()]
+            li_df = li_df[li_df['fw_locus_prefix']=='UPS']
+    
+            max_event_date_map = fw_df.groupby('fish_group')['event_date'].max()
+            li_df = li_df.merge(max_event_date_map.rename('max_event_date'), left_on='fish_group', right_index=True, how='left')
+            li_df = li_df.sort_values(['fish_group', 'locus_id', 'event_date'])
+            li_df['days_in_regime'] = li_df.groupby(['fish_group', 'locus_id'])['event_date'].diff(1).shift(-1).dt.days
+            li_df['days_in_regime'] = li_df['days_in_regime'].fillna((li_df['max_event_date'] - li_df['event_date']).dt.days)
+            min_event_date_map = li_df.groupby(['fish_group', 'locus_id'])['event_date'].min()
+            li_df = li_df.merge(min_event_date_map.rename('min_event_date'), left_on=['fish_group', 'locus_id'], right_index=True, how='left')
+            li_df = li_df.drop(columns='max_event_date')
+            li_df = li_df.groupby(['fish_group', 'locus_id', 'light_regime'])[['days_in_regime', 'start_fish_bms']].sum().reset_index()
+            # test_df = li_df[li_df['locus_id']==3046956]
+            avg_li_df = li_df[li_df['start_fish_bms'] != 0].groupby('light_regime').apply(lambda x: (x['start_fish_bms']/x['start_fish_bms'].sum() * x['days_in_regime']).sum())
+            
+            # avg_li_df = li_df.pivot_table(index='fish_group', columns='light_regime', values='days_in_regime', aggfunc='mean')
+            for lr in ['Apagado', 'Invierno', 'Verano']:
+                if lr in avg_li_df.index:
+                   # s_df[f'light:days_in_avg:{lr}'] = int((avg_li_df[lr] * weights_df.loc[avg_li_df.index, 'UPS']).sum())
+                   s_df[f'light:days_in:{lr}'] = int(avg_li_df[lr])
+                   
+            # ref_date = pd.Timestamp('1970-01-01', tz='UTC')
+            # li_df_days = (min_li_dates - ref_date)
+            # if 'Verano' in li_df_days.columns:
+            #     h = li_df_days['Verano'].dt.days
+            #     summer_days = (weights_df.loc[h.index, 'UPS'] * h).sum().astype(int)
+            #     summer_light_date = ref_date + pd.Timedelta(days=summer_days)
+            # if 'Invierno' in li_df_days.columns:
+            #     h = li_df_days['Invierno'].dt.days
+            #     winter_days = (weights_df.loc[h.index, 'UPS'] * h).sum().astype(int)
+            #     winter_light_date = ref_date + pd.Timedelta(days=winter_days)
+    
+
+        # Calendar features
+        s_df['calendar:transfer_dayofyear'] = s_df['min_transfer_date'].dayofyear
+
+        # FW stages length
+        # Fix incubation issues
+        # fw_df = fw_df.loc[fw_df.drop(['event_date'], axis=1).drop_duplicates().index]
+        # i_mask = fw_df['fw_locus_prefix']=='I'
+        # if fw_df.loc[i_mask, 'fish_group'].nunique() == 1:
+        #     h_min = fw_df.loc[fw_df['fw_locus_prefix']=='H', 'event_date'].min()
+        #     fw_df.loc[(i_mask & (fw_df['event_date'] > h_min)), 'fw_locus_prefix'] = np.nan
+
+        # cnts_df = pd.pivot_table(data=fw_df, index='fish_group', columns='fw_locus_prefix', values='event_date', aggfunc='nunique')
+        # cnts_df[cnts_df == 0] = np.nan
+        # fw_stages_lengths = (cnts_df * weights_df).sum(0).astype(int)
+            
+        # for k in fw_stages_lengths.index:
+        #     if fw_stages_lengths[k] == 0: res = np.nan
+        #     else: res = fw_stages_lengths[k]
+        #     s_df[f'cycle:len:{k}'] = res
+    
+        # #Weighted stages day
+        # dates_df = pd.pivot_table(data=fw_df[(fw_df['fw_locus_prefix']!='I') & (fw_df['fw_locus_prefix'].isin(fw_stages_sorted))], index='fish_group', columns='fw_locus_prefix', values='event_date', aggfunc='min')
+        # for s in dates_df.columns: dates_df[s] = dates_df[s].dt.dayofyear
+        # dates = (dates_df * weights_df.loc[dates_df.index, dates_df.columns]).sum(0).astype(int)
+        # dates.index = [f'calendar:dayofyear:{i}' for i in dates.index]    
+        # # dates = dates.to_frame().T
+        # for k, v in dates.to_dict().items():
+        #     s_df[k] = v
+            
+    
+        # Sensors
+        # sns.scatterplot(data=sn_df, x='event_date', y='sensor:Temperature', hue='fish_group')
+        # s_cols = ['Flow', 'Oxygen', 'PH', 'Salinity', 'Temperature', 'Water Pressure'] #[c for c in sensors_df.columns if 'sensor' in c] # #TODO!
+        # for s_col in [c for c in s_cols if c in sn_df.columns]:
+        #     for aggfunc in ['mean', 'min', 'max', 'std']:
+        #         sg_df = pd.pivot_table(data=sn_df, index='fish_group', columns='fw_locus_prefix', values=s_col, aggfunc=aggfunc)
+        #         res = (sg_df * weights_df).sum(0)
+        #         res[res==0] = np.nan
+        #         res.index = [f'sensor:{s_col}:{aggfunc}:{i}' for i in res.index]    
+        #         for k, v in res.items():
+        #             s_df[k] = v
+                
+        # # Feed supplier
+        # # feed = fe_df.loc[((fe_df['event_date'] >= min_date) & (fe_df['event_date'] <= max_date)), 'feed_amount']
+        # feed_amounts = fe_df.groupby(['fw_locus_prefix', 'feed_name'])['feed_amount'].sum().reset_index()
+        # most_common_suppliers = feed_amounts.loc[feed_amounts.groupby('fw_locus_prefix')['feed_amount'].idxmax()][['fw_locus_prefix', 'feed_name']]
+        # for i, g_id in most_common_suppliers.iterrows():
+        #     s_df[f'feed_producer:most_common:{g_id["fw_locus_prefix"]}'] = g_id['feed_name']
+        
+        # #First dates
+        # first_feeding_date = fe_df['event_date'].min()
+        
+        # sns.scatterplot(data=fw_df[fw_df['fw_locus_prefix'] == 'UPS'], x='event_date', y='fish_wg', hue='fish_group')
+        # sns.scatterplot(data=fw_df, x='event_date', y='fish_wg', hue='fw_locus_prefix')
+        
+        #Jobs
+        j_cols = ['jobs:Temperature',] #[c for c in jb_df.columns if 'jobs' in c] 
+        for j_col in j_cols:
+            for aggfunc in ['mean', 'min', 'max', 'std']:
+                sg_df = pd.pivot_table(data=jb_df, index='fish_group', columns='fw_locus_prefix', values=j_col, aggfunc=aggfunc)
+                res = (sg_df * weights_df).sum(0)
+                res[res==0] = np.nan
+                res.index = [f'{j_col}:{aggfunc}:{i}' for i in res.index]    
+                for k, v in res.items():
+                    s_df[k] = v
+            sq_df = jobs_q_df[jobs_q_df['feature_name']==j_col]
+            for q, vals in sq_df.iterrows():
+                for prefix, g_df in jb_df.groupby('fw_locus_prefix'):
+                    perc = (g_df[j_col] <= vals[prefix]).mean() * 100
+                    s_df[f'{j_col}:perc_q<={q}:{prefix}'] = perc
+              
+        #Temperature last N weeks
+        tmp_df = jb_df[['event_date', 'jobs:Temperature']]
+        for N in [1,2,3,4]:
+            last_date = s_df['min_transfer_date']-pd.Timedelta(weeks=N)
+            t_df = tmp_df.loc[tmp_df['event_date'] >= last_date, 'jobs:Temperature']
+            s_df[f'jobs:Temperature:mean:last_{N}w'] = t_df.mean()
         
         #Overall oSFR
     
@@ -553,7 +597,7 @@ def construct_dataset(
             degree_days=('degree_days', 'mean'),
             fish_wg=('fish_wg', 'mean')
         ).reset_index()
-        bms_df = pd.merge(bms_df, fe_df, how='left', on=['event_date', 'fish_group'])
+        bms_df = pd.merge(bms_df, fe_df, how='left', on=['event_date', 'fish_group', 'fw_locus_prefix'])
 
         # bms = g_df['end_fish_bms'].max() # - g_df['end_fish_bms'].min()
         # min_date, max_date = g_df['event_date'].min(), g_df['event_date'].max()
@@ -561,22 +605,22 @@ def construct_dataset(
         bms_df['osfr_value'] = bms_df['feed_amount']/bms_df['start_fish_bms'] * 100
         bms_df['esfr_value'] = eSFR(bms_df['fish_wg'], bms_df['degree_days'])#.mean()
         bms_df['nsfr_value'] = (bms_df['osfr_value']/bms_df['esfr_value'])
-        nsfr_df = pd.pivot_table(data=bms_df, index='fish_group', columns='fw_locus_prefix', values='nsfr_value', aggfunc='mean')
-        nsfr_values = (nsfr_df * weights_df.loc[nsfr_df.index, nsfr_df.columns]).sum(0)
-        nsfr_values.index = [f'feed:nSFR:{i}' for i in nsfr_values.index]    
-        nsfr_values = nsfr_values.to_frame().T
-        nsfr_values.index = s_df.index
-        s_df = pd.concat([s_df, nsfr_values], axis=1)
-
+        # nsfr_df = pd.pivot_table(data=bms_df, index='fish_group', columns='fw_locus_prefix', values='nsfr_value', aggfunc='mean')
+        # nsfr_values = (nsfr_df * weights_df.loc[nsfr_df.index, nsfr_df.columns]).sum(0)
+        # nsfr_values.index = [f'feed:nSFR:{i}' for i in nsfr_values.index
+        osfr_df = pd.pivot_table(data=bms_df, index='fish_group', columns='fw_locus_prefix', values='osfr_value', aggfunc='mean')
+        osfr_values = (osfr_df * weights_df.loc[osfr_df.index, osfr_df.columns]).sum(0)
+        osfr_values.index = [f'feed:oSFR:{i}' for i in osfr_values.index]           
+        for k, v in osfr_values.to_dict().items():
+            s_df[k] = v
+            
         for N in [1,2,3,4]:
-            last_date = s_df['min_transfer_date'].item()-pd.Timedelta(weeks=N)
+            last_date = s_df['min_transfer_date']-pd.Timedelta(weeks=N)
             t_df = bms_df.loc[bms_df['event_date'] >= last_date]
             s_df[f'feed:oSFR:mean:last_{N}w'] = t_df['osfr_value'].mean()
-            s_df[f'feed:nSFR:mean:last_{N}w'] = t_df['nsfr_value'].mean()
+            # s_df[f'feed:nSFR:mean:last_{N}w'] = t_df['nsfr_value'].mean()
     
-        #Feed LUF
-        luf_perc = fe_df.loc[fe_df['has_luf']==True, 'feed_amount'].sum()/fe_df['feed_amount'].sum() * 100
-        s_df['feed:luf_perc'] = luf_perc
+  
         
         #TGC: F, OG/UPS
         for g_id, g_df in fw_df.groupby('fw_locus_prefix'):
@@ -588,39 +632,42 @@ def construct_dataset(
         #Mortality rate since Fry stage
         m_df = pd.pivot_table(data=mrt_df[~mrt_df['fw_locus_prefix'].isin(['I', 'H']) & (mrt_df['fw_locus_prefix'].isin(fw_stages_sorted))], index='fish_group', columns='fw_locus_prefix', values='mortality_cnt', aggfunc='sum')
         rates = (m_df * weights_df.loc[m_df.index, m_df.columns]).sum(0)
-        mrt_rate = rates/(s_df['stock_cnt'].item()+rates)
+        mrt_rate = rates/(s_df['stock_cnt']+rates)
         mrt_rate.index = [f'mortality:mrt_rate:{i}' for i in mrt_rate.index]    
-        mrt_rate = mrt_rate.to_frame().T
-        mrt_rate.index = s_df.index
-        s_df = pd.concat([s_df, mrt_rate], axis=1)
+        for k, v in mrt_rate.to_dict().items():
+            s_df[k] = v
         for N in [1,2,3,4]:
-            last_date = s_df['min_transfer_date'].item()-pd.Timedelta(weeks=N)
+            last_date = s_df['min_transfer_date']-pd.Timedelta(weeks=N)
             mrts = mrt_df.loc[mrt_df['event_date'] >= last_date, 'mortality_cnt'].sum()
-            s_df[f'mortality:mrt_rate:last_{N}w'] = mrts/(s_df['stock_cnt'].item()+mrts)
+            s_df[f'mortality:mrt_rate:last_{N}w'] = mrts/(s_df['stock_cnt']+mrts)
     
-        
-        #Treatments
-        days = trt_df.groupby('active_substance_name')['event_date'].nunique()
-        amount = trt_df.groupby('active_substance_name')['amount'].sum()
-        amount_per_day = amount.divide(days)
-        for k, v in amount_per_day.items():
-            s_df[f'treatment:amount_per_day:{k}'] = v
-        
-        s_df = s_df.copy()
-        for g_id, g_df in trt_df.groupby('active_substance_name'):
-            g_df = g_df.sort_values('event_date')
-            days_in_treatment = g_df['event_date'].nunique()
-            max_consectuive = g_df['event_date'].diff().dt.days.max()
-            last_treatment = (fw_df['event_date'].max() - g_df['event_date'].max()).days
-            s_df.loc[s_df.index, f'treatment:days_in:{g_id}'] = days_in_treatment
-            s_df.loc[s_df.index,f'treatment:consecutive_without:{g_id}'] = max_consectuive
-            s_df.loc[s_df.index,f'treatment:days_since_last:{g_id}'] = last_treatment
         s_dfs.append(s_df)
-    
-    stock_df = pd.concat(s_dfs, axis=0).reset_index(drop=True)
+    stock_df = pd.DataFrame(s_dfs).reset_index(drop=True)
     
     #Additional Features merge
     stock_df = stock_df.merge(fg_df[['fish_group', 'fg:strain_name']].drop_duplicates(), how='left', on=['fish_group'])
     return stock_df
 
 
+def sensor_data_clean(sensors_df):
+    sensor_outliers = {
+        'Flow': (0.1, 100),
+        'Oxygen': (2, 20),
+        'PH': (4, 10),
+        'Salinity': (0, 1000),
+        'Temperature': (0, 35),
+        'Water Pressure': (0.5, 5)
+    }
+    
+    def remove_outliers(group):
+        sensor_name = group['sensor_type_name'].iloc[0]
+        if sensor_name in sensor_outliers:
+            lower, upper = sensor_outliers[sensor_name]
+            group = group[(group['value'] >= lower) & (group['value'] <= upper)]
+        else:
+            lower, upper = math.get_outliers(group, 'value')
+            group = group[(group['value'] > lower) & (group['value'] < upper)]
+        return group
+    
+    cleansed_data = sensors_df.groupby('sensor_type_name', as_index=False).apply(remove_outliers)
+    return cleansed_data

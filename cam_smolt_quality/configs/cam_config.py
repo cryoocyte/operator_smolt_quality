@@ -209,7 +209,7 @@ config = {
         "fw_feed_mrts": {
             "sql": {
                 "query": getattr(sql, cfg.RUN_ENV).mrts.feed.query,
-                "keys": ["site_name", "fish_group", "event_date", "feed_name"],
+                "keys": ["site_name", "fish_group", "event_date", "fw_locus_prefix", "feed_name"],
                 "values": ["feed_amount"],
                 "args": {
                     "LICENSEE_ID": LICENSEE_ID,
@@ -354,4 +354,6 @@ MRTPERC_GROUPS = {
     'high': 1.508,
     'extreme': 3.055
 } #Histroical q = [0, 0.05, 0.35, 0.65, 0.95, 1]
+
+
 
